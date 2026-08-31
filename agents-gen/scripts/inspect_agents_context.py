@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 SKIP_DIRS = {
     ".git",
     ".hg",
@@ -59,9 +59,47 @@ TASK_FILE_NAMES = {
     "Taskfile.yaml",
     "justfile",
 }
+WORKSPACE_FILE_NAMES = {
+    "go.work",
+    "lerna.json",
+    "nx.json",
+    "pnpm-workspace.yaml",
+    "pnpm-workspace.yml",
+    "turbo.json",
+}
+SUBPROJECT_MANIFEST_NAMES = {
+    "Cargo.toml",
+    "Gemfile",
+    "SKILL.md",
+    "go.mod",
+    "package.json",
+    "pom.xml",
+    "pyproject.toml",
+}
 INSTRUCTION_NAMES = {"AGENTS.md", "AGENTS.override.md", "CLAUDE.md"}
 DOC_NAMES = {"CONTRIBUTING.md", "DEVELOPMENT.md", "README.md"}
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+INLINE_CODE = re.compile(r"`([^`\n]+)`")
+PATH_SUFFIXES = {
+    ".c",
+    ".cpp",
+    ".go",
+    ".h",
+    ".java",
+    ".js",
+    ".json",
+    ".jsx",
+    ".md",
+    ".py",
+    ".rb",
+    ".rs",
+    ".sh",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".yaml",
+    ".yml",
+}
 
 
 def iter_project_files(project: Path):
@@ -111,10 +149,14 @@ def package_scripts(project: Path, package_json: Path) -> dict[str, Any]:
             "error": f"invalid JSON at line {exc.lineno}",
         }
     scripts = data.get("scripts")
+    workspaces = data.get("workspaces")
     return {
         "path": relative(project, package_json),
+        "name": data.get("name"),
+        "private": data.get("private"),
         "package_manager": data.get("packageManager"),
         "scripts": scripts if isinstance(scripts, dict) else {},
+        "workspaces": workspaces if isinstance(workspaces, (list, dict)) else None,
     }
 
 
@@ -176,9 +218,28 @@ def git_record(project: Path) -> dict[str, Any]:
     }
 
 
-def link_records(project: Path, instruction_paths: list[Path]) -> list[dict[str, Any]]:
+def reference_record(
+    project: Path, source: Path, target: str, kind: str
+) -> dict[str, Any]:
+    clean_target = target.split("#", 1)[0]
+    candidate = Path(clean_target).expanduser()
+    resolved = (
+        candidate.resolve()
+        if candidate.is_absolute()
+        else (source.parent / candidate).resolve()
+    )
+    return {
+        "source": relative(project, source),
+        "target": target,
+        "kind": kind,
+        "exists": resolved.exists(),
+        "inside_project": resolved == project or project in resolved.parents,
+    }
+
+
+def link_records(project: Path, source_paths: list[Path]) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
-    for source in instruction_paths:
+    for source in source_paths:
         text = read_text(source)
         if text is None:
             continue
@@ -186,16 +247,69 @@ def link_records(project: Path, instruction_paths: list[Path]) -> list[dict[str,
             target = raw_target.strip().split(maxsplit=1)[0].strip("<>")
             if not target or target.startswith(("#", "http://", "https://", "mailto:")):
                 continue
-            clean_target = target.split("#", 1)[0]
-            resolved = (source.parent / clean_target).resolve()
-            records.append(
-                {
-                    "source": relative(project, source),
-                    "target": target,
-                    "exists": resolved.exists(),
-                    "inside_project": resolved == project or project in resolved.parents,
-                }
-            )
+            records.append(reference_record(project, source, target, "markdown_link"))
+    return records
+
+
+def looks_like_file_path(value: str) -> bool:
+    candidate = value.strip().strip("<>")
+    if not candidate or any(character.isspace() for character in candidate):
+        return False
+    if candidate.startswith(("#", "http://", "https://", "mailto:", "${")):
+        return False
+    if any(character in candidate for character in ("*", "|", ";", "=")):
+        return False
+    suffix = Path(candidate.split("#", 1)[0]).suffix.lower()
+    return suffix in PATH_SUFFIXES or Path(candidate).name in (
+        INSTRUCTION_NAMES | MANIFEST_NAMES | TASK_FILE_NAMES | DOC_NAMES | WORKSPACE_FILE_NAMES
+    )
+
+
+def instruction_path_records(
+    project: Path, instruction_paths: list[Path]
+) -> list[dict[str, Any]]:
+    records = link_records(project, instruction_paths)
+    seen = {(item["source"], item["target"], item["kind"]) for item in records}
+    for source in instruction_paths:
+        text = read_text(source)
+        if text is None:
+            continue
+        for raw_target in INLINE_CODE.findall(text):
+            target = raw_target.strip().strip("<>")
+            key = (relative(project, source), target, "inline_code")
+            if looks_like_file_path(target) and key not in seen:
+                records.append(reference_record(project, source, target, "inline_code"))
+                seen.add(key)
+    return records
+
+
+def subproject_records(project: Path, files: list[Path]) -> list[dict[str, Any]]:
+    manifests_by_scope: dict[Path, list[Path]] = {}
+    task_files_by_scope: dict[Path, list[Path]] = {}
+    for path in files:
+        if path.parent == project:
+            continue
+        if path.name in SUBPROJECT_MANIFEST_NAMES:
+            manifests_by_scope.setdefault(path.parent, []).append(path)
+        if path.name in TASK_FILE_NAMES:
+            task_files_by_scope.setdefault(path.parent, []).append(path)
+
+    records: list[dict[str, Any]] = []
+    for scope_path in sorted(manifests_by_scope, key=lambda item: relative(project, item)):
+        scope = relative(project, scope_path)
+        agents_path = scope_path / "AGENTS.md"
+        evidence = sorted(
+            relative(project, path)
+            for path in manifests_by_scope[scope_path] + task_files_by_scope.get(scope_path, [])
+        )
+        records.append(
+            {
+                "scope": scope,
+                "evidence": evidence,
+                "agents_path": relative(project, agents_path),
+                "agents_exists": agents_path.is_file(),
+            }
+        )
     return records
 
 
@@ -205,11 +319,15 @@ def inspect(project: Path) -> dict[str, Any]:
     manifests = [relative(project, path) for path in files if path.name in MANIFEST_NAMES]
     lockfiles = [relative(project, path) for path in files if path.name in LOCKFILE_NAMES]
     task_files = [relative(project, path) for path in files if path.name in TASK_FILE_NAMES]
-    docs = [
-        relative(project, path)
+    workspace_files = [
+        relative(project, path) for path in files if path.name in WORKSPACE_FILE_NAMES
+    ]
+    doc_paths = [
+        path
         for path in files
         if path.name in DOC_NAMES or ("docs" in path.relative_to(project).parts and path.suffix.lower() == ".md")
     ]
+    docs = [relative(project, path) for path in doc_paths]
     packages = [package_scripts(project, path) for path in files if path.name == "package.json"]
     return {
         "schema_version": SCHEMA_VERSION,
@@ -219,9 +337,13 @@ def inspect(project: Path) -> dict[str, Any]:
         "manifests": manifests,
         "lockfiles": lockfiles,
         "task_files": task_files,
+        "workspace_files": workspace_files,
+        "subproject_candidates": subproject_records(project, files),
         "documentation": docs,
         "package_json": packages,
         "instruction_links": link_records(project, instructions),
+        "instruction_path_references": instruction_path_records(project, instructions),
+        "documentation_links": link_records(project, doc_paths),
     }
 
 

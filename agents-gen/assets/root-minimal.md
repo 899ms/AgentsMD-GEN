@@ -13,3 +13,4 @@ ONE_SENTENCE_PROJECT_PURPOSE
 ## Guidance
 
 - [FOCUSED_GUIDANCE](RELATIVE_PATH_THAT_EXISTS)
+- See each independent subproject's `AGENTS.md` for local guidance.

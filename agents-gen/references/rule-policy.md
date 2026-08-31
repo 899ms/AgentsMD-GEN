@@ -31,6 +31,7 @@ Around 50 lines is a review signal, never a correctness threshold. A short file 
 | Candidate | Destination |
 | --- | --- |
 | Project purpose, non-default tooling, shared validation, global boundaries | Root `AGENTS.md` |
+| Independent app, package, service, or plugin purpose and local boundary | Its root `AGENTS.md` |
 | Stable rule needed by nearly every task in one subtree | Nearest nested `AGENTS.md` |
 | Language, testing, API, release, or Git detail used only for related work | Existing focused documentation, linked once when useful |
 | Repeated multi-step operational workflow | A dedicated Skill |
@@ -40,9 +41,23 @@ Around 50 lines is a review signal, never a correctness threshold. A short file 
 
 Classify by scope, not topic. A test prohibition shared by the entire repository may belong at root; a package-specific test command does not.
 
+## Recognize independent subprojects
+
+Treat a subtree as an independent subproject when current repository evidence gives it its own development lifecycle. Strong evidence includes:
+
+- membership in a declared workspace;
+- a package or build manifest at the subtree root with its own name, dependencies, or commands;
+- CI, task, or maintained documentation that builds, tests, deploys, or publishes it separately.
+
+An independent subproject receives a minimal nested `AGENTS.md` by default. Its stable purpose and technology boundary are useful local context even when it has no extra prohibition or convention yet.
+
+Do not equate directories with subprojects. Source groupings such as `src`, `tests`, `utils`, generated output, vendored code, examples, and fixtures inherit their nearest applicable instructions unless repository evidence establishes a maintained independent lifecycle. If the boundary or purpose cannot be established without guessing, ask before writing.
+
 ## Prefer stable capabilities over path maps
 
-Do not inventory the repository or promise that implementation lives at a volatile file path. Describe the stable domain or capability and tell the agent to locate the current implementation when needed. Keep a path only when it is itself a durable interface, such as an official command entrypoint or linked policy file, and verify it exists.
+Do not inventory the repository or promise that implementation lives at a volatile file path. Describe the stable domain or capability, the repository's broad shape when useful, and tell the agent to locate the current implementation during planning. Nested `AGENTS.md` files are discovered from the current tree and scope; the root does not need a package-by-package path table.
+
+Keep a path only when it is itself a durable interface, such as an official command entrypoint or focused policy file, and verify it exists. A link is not durable merely because it currently resolves. Prefer a short natural pointer such as “See each independent subproject's AGENTS.md for local guidance” over a copied directory map.
 
 ## Handle conflicts conservatively
 

@@ -9,7 +9,7 @@ Update `AGENTS.md` when the final change introduces or removes one of these dura
 - a project-wide or package-specific non-default command;
 - a new package manager, workspace, runtime, build, test, typecheck, lint, or deployment entrypoint future tasks must use;
 - a stable architectural boundary or ownership rule that changes where future work belongs;
-- a new module with distinct instructions needed for nearly every task in that subtree;
+- a new, moved, renamed, merged, or removed independent subproject;
 - a renamed or removed document currently linked from applicable instructions;
 - an existing instruction that became false, contradictory, or misleading.
 
@@ -18,19 +18,23 @@ Normally report unchanged for:
 - ordinary feature code under existing conventions;
 - an internal refactor with the same workflows and boundaries;
 - tests that use already documented commands;
-- new directories that inherit all applicable parent guidance;
+- new ordinary directories that inherit all applicable parent guidance;
 - temporary migration steps, incident notes, or facts relevant only to the current task.
 
-## Split only when the scope earns a file
+## Maintain independent subproject scopes
 
-A new module or package does not automatically receive `AGENTS.md`. Create the nearest nested file only when all are true:
+Create a minimal nested `AGENTS.md` when current evidence establishes an independent app, package, service, or plugin. Its purpose and technology boundary are enough to earn the scope. Add local commands, conventions, and focused-document pointers only when evidence supports them; do not repeat inherited root guidance.
+
+When a subproject moves or is renamed, rediscover its current root from manifests, workspace configuration, CI, and maintained documentation. Do not preserve an obsolete path map. Update stable links whose new target is unambiguous; otherwise stop and ask rather than guessing.
+
+For an ordinary subtree that is not an independent subproject, create the nearest nested file only when all are true:
 
 1. The subtree has at least one distinct instruction.
 2. The instruction is stable and repeatedly relevant inside that subtree.
 3. Keeping it at root would distract tasks elsewhere.
 4. The nested file does not repeat inherited content.
 
-When a nested file loses its last distinct rule, remove it only after confirming it contains no user policy or other owned content.
+When an independent subproject ceases to exist, or an ordinary nested file loses its last distinct rule, remove the file only after confirming it contains no user policy or other owned content.
 
 ## Make automatic edits narrow
 
