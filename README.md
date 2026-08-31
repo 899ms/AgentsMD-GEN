@@ -29,9 +29,18 @@ AgentsMD-GEN 提供 `agents-gen` Agent Skill。它既能响应“帮我创建 AG
 
 - Python 3.9+
 - 支持 Agent Skills 的宿主
-- 如需统一分发：已配置的 [SkillManager](https://github.com/Niall-Young/SkillManager)
+- 可选：如需统一分发，可使用已配置的 [SkillManager](https://github.com/Niall-Young/SkillManager)
 
-#### 通过 MySkills 安装
+#### 交给你的 Agent 安装（推荐）
+
+把下面这段提示词复制给你正在使用、且支持 Agent Skills 的编程 Agent：
+
+```text
+帮我安装这个 Agent Skill：https://github.com/Niall-Young/AgentsMD-GEN
+请安装仓库中的 agents-gen Skill，完整保留 SKILL.md、assets、references、scripts 和 tests，并在安装后运行 Skill 验证，告诉我实际安装路径和验证结果。
+```
+
+#### 通过 MySkills 安装（可选）
 
 ```sh
 skillmgr source add https://github.com/Niall-Young/AgentsMD-GEN.git --name agents-md-gen
@@ -94,9 +103,18 @@ It treats `AGENTS.md` as scarce persistent context, not a project encyclopedia. 
 
 - Python 3.9+
 - A host that supports Agent Skills
-- For managed multi-Agent distribution: configured [SkillManager](https://github.com/Niall-Young/SkillManager)
+- Optional: a configured [SkillManager](https://github.com/Niall-Young/SkillManager) for managed multi-Agent distribution
 
-#### Install through MySkills
+#### Ask Your Agent to Install It (Recommended)
+
+Copy this prompt into the coding Agent you currently use, as long as it supports Agent Skills:
+
+```text
+Install this Agent Skill for me: https://github.com/Niall-Young/AgentsMD-GEN
+Install the agents-gen Skill from the repository, preserving SKILL.md, assets, references, scripts, and tests. After installation, validate the Skill and tell me the actual installation path and validation result.
+```
+
+#### Install through MySkills (Optional)
 
 ```sh
 skillmgr source add https://github.com/Niall-Young/AgentsMD-GEN.git --name agents-md-gen
