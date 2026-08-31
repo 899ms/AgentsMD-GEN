@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agents Gen"
+  short_description: "Create and maintain scoped AGENTS.md files"
+  default_prompt: "Use $agents-gen to create or improve this project's AGENTS.md from repository evidence."
+
+policy:
+  allow_implicit_invocation: true
