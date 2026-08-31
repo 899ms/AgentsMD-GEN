@@ -12,4 +12,5 @@ ONE_SENTENCE_SUBTREE_PURPOSE
 
 ## Guidance
 
+- When local `.agent-guides/` entries exist, inspect their descriptions and read only the guides relevant to the task.
 - [FOCUSED_LOCAL_GUIDANCE](RELATIVE_PATH_THAT_EXISTS)

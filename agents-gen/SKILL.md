@@ -1,6 +1,6 @@
 ---
 name: agents-gen
-description: Mandatory AGENTS.md lifecycle gate for direct requests to create, update, organize, audit, or fix project AGENTS.md files and for every implementation task that creates, modifies, renames, or deletes project files. Create a minimal root, give independent subprojects scoped instructions, route detail through progressive disclosure, and report unchanged when no durable instruction impact exists. Skip pure discussion, research, planning, and other read-only tasks.
+description: Mandatory AGENTS.md lifecycle gate for direct requests to create, update, organize, audit, or fix project AGENTS.md files and for every implementation task that creates, modifies, renames, or deletes project files. Create a minimal root, give independent subprojects scoped instructions, route conditional guidance through discoverable .agent-guides, and report unchanged when no durable instruction impact exists. Skip pure discussion, research, planning, and other read-only tasks.
 metadata:
   short-description: Create and maintain scoped AGENTS.md files
 ---
@@ -37,11 +37,13 @@ Also inspect the relevant manifests, workspace configuration, lockfiles, task de
 
 Before creating or changing instructions, read [the rule admission and placement policy](references/rule-policy.md). For the mandatory post-change gate and module evolution rules, also read [the maintenance policy](references/maintenance.md).
 
+Read [the progressive-disclosure policy](references/progressive-disclosure.md) when any `.agent-guides` directory exists, the root file triggers size review, or the user asks to organize, shorten, split, or progressively disclose instructions. Do not load it for an ordinary unchanged maintenance gate.
+
 ## Choose the outcome
 
 ### Create
 
-When the root `AGENTS.md` is missing and repository evidence is sufficient, create the smallest useful version. This applies both to a direct creation request and to the first qualifying implementation task in an unconfigured project. In the same pass, create a minimal nested `AGENTS.md` for every evidenced independent subproject that does not already have its own usable local instructions.
+When the root `AGENTS.md` is missing and repository evidence is sufficient, create the smallest useful version. This applies both to a direct creation request and to the first qualifying implementation task in an unconfigured project. In the same pass, create a minimal nested `AGENTS.md` for every evidenced independent subproject that does not already have its own usable local instructions. Create `.agent-guides` only for supported durable rules that are conditional inside an established instruction scope; never create empty guide structures.
 
 Match the language of the project's maintained documentation. If the repository gives no language signal, use concise English. Render only sections with real content; use the [root skeleton](assets/root-minimal.md) and [nested skeleton](assets/nested-minimal.md) as pruning aids, not forms to fill. A multi-project root may say that each independent subproject has local guidance, but must not enumerate volatile implementation paths.
 
@@ -53,13 +55,13 @@ Compare the final project state with the applicable instruction hierarchy. Updat
 
 Create and maintain a nested `AGENTS.md` for each evidenced independent subproject. Its stable purpose and technology boundary are sufficient local context even before it accumulates additional conventions. For an ordinary directory that is not an independent subproject, create a nested file only when distinct, stable instructions apply to nearly every task in that subtree.
 
-Keep the root small. Put detailed language, testing, API, release, or Git guidance in focused documents and retain only a natural routing pointer at the narrowest useful scope. Reuse an existing authoritative document; during an explicit reorganization, create a focused document only when moving supported existing policy into it. Never invent a convention to fill a document.
+Keep each `AGENTS.md` small. Rules needed by nearly every task in its scope stay in that file. Conditional language, testing, API, release, security, migration, or Git guidance belongs in the matching scope's `.agent-guides`; the root carries the one project-wide discovery protocol. Reuse existing authoritative documents instead of copying their policy. During an explicit reorganization, move supported existing policy into guides without changing its meaning. Never invent a convention to fill a guide.
 
 Safe, evidence-backed maintenance may be written automatically within the authorized project task. Ask before semantic deletion or rewriting of user policy, resolving a real conflict, changing ownership, or introducing a new team convention.
 
 ### Audit
 
-For a read-only audit, classify each existing instruction as keep, rewrite, move, automate elsewhere, ask, or remove. Include missing independent-subproject coverage, broken progressive-disclosure links, brittle implementation paths, and directory maps. Report evidence and destination without writing files.
+For a read-only audit, classify each existing instruction as keep, rewrite, move, automate elsewhere, ask, or remove. Include missing independent-subproject coverage, missing guide discovery, invalid guide metadata, broken progressive-disclosure links, brittle implementation paths, and directory maps. Report evidence and destination without writing files.
 
 ## Verify the accepted artifact
 
@@ -69,8 +71,9 @@ After a write:
 2. Re-run the inventory and confirm relative links and the focused-document tree resolve.
 3. Trace commands to current project evidence. State whether a command was merely verified as declared or actually executed.
 4. Check the effective hierarchy for duplicate or contradictory root and nested rules.
-5. Confirm personal preferences, one-off task notes, volatile implementation paths, brittle directory maps, and copied reference material did not enter persistent context.
-6. Run the gate a second time conceptually: without new evidence, the result must be `unchanged`.
+5. When guides exist, confirm the root discovery protocol, entry descriptions, scope pairing, one-level reference structure, and all guide links are valid.
+6. Confirm personal preferences, one-off task notes, volatile implementation paths, brittle directory maps, and copied reference material did not enter persistent context.
+7. Run the gate a second time conceptually: without new evidence, the result must be `unchanged`.
 
 Do not report completion from a file write alone. End with exactly one lifecycle result and a short evidence-based reason:
 

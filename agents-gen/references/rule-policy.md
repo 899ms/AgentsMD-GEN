@@ -10,6 +10,7 @@ For each candidate, identify:
 - evidence: repository fact or explicit durable project policy;
 - owner: project, package, user, tool, or unknown;
 - scope: every task, one subtree, one domain, one workflow, or one task;
+- activation: every task in that scope or only a named kind of work;
 - stability: whether it survives likely file and module movement;
 - actionability: a concrete action, boundary, or check;
 - enforcement: whether config, lint, tests, CI, or hooks should own it instead;
@@ -33,13 +34,17 @@ Around 50 lines is a review signal, never a correctness threshold. A short file 
 | Project purpose, non-default tooling, shared validation, global boundaries | Root `AGENTS.md` |
 | Independent app, package, service, or plugin purpose and local boundary | Its root `AGENTS.md` |
 | Stable rule needed by nearly every task in one subtree | Nearest nested `AGENTS.md` |
-| Language, testing, API, release, or Git detail used only for related work | Existing focused documentation, linked once when useful |
+| Project-wide rule needed only for a named kind of work | Root `.agent-guides` entry |
+| Subproject rule needed only for a named kind of work | That subproject's `.agent-guides` entry |
+| Detail already owned by an authoritative project document | Keep it authoritative; route to it from the relevant guide when useful |
 | Repeated multi-step operational workflow | A dedicated Skill |
 | Personal preference | User-level instructions or personal Skill |
 | Mechanically enforceable requirement | Configuration, lint, tests, CI, or hooks |
 | One-off request, obvious default, unsupported claim, or vague aspiration | Do not persist |
 
-Classify by scope, not topic. A test prohibition shared by the entire repository may belong at root; a package-specific test command does not.
+Classify first by spatial scope and then by activation. Repository-wide applicability does not imply that every task must load the full rule. A test prohibition needed during every project task may belong at root; repository-wide test detail used only while testing belongs in a root guide. A package-specific command belongs in that package's instruction scope.
+
+An ordinary subtree does not earn an `AGENTS.md` merely to host one conditional guide. Put that rule at the nearest established instruction scope and describe its stable trigger. Keep guide directories paired with usable root or independent-subproject `AGENTS.md` files so discovery does not create hidden instruction scopes.
 
 ## Recognize independent subprojects
 
@@ -55,7 +60,7 @@ Do not equate directories with subprojects. Source groupings such as `src`, `tes
 
 ## Prefer stable capabilities over path maps
 
-Do not inventory the repository or promise that implementation lives at a volatile file path. Describe the stable domain or capability, the repository's broad shape when useful, and tell the agent to locate the current implementation during planning. Nested `AGENTS.md` files are discovered from the current tree and scope; the root does not need a package-by-package path table.
+Do not inventory the repository or promise that implementation lives at a volatile file path. Describe the stable domain or capability, the repository's broad shape when useful, and tell the agent to locate the current implementation during planning. Nested `AGENTS.md` files and `.agent-guides` entries are discovered from the current tree and scope; the root does not need package or guide path tables.
 
 Keep a path only when it is itself a durable interface, such as an official command entrypoint or focused policy file, and verify it exists. A link is not durable merely because it currently resolves. Prefer a short natural pointer such as “See each independent subproject's AGENTS.md for local guidance” over a copied directory map.
 

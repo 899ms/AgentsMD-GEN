@@ -19,7 +19,8 @@ AgentsMD-GEN 提供 `agents-gen` Agent Skill。它既能响应“帮我创建 AG
 
 - 缺少根文件时，从真实项目信息创建最小 `AGENTS.md`，不写入易过期的源码位置和目录地图。
 - 每次从 workspace、manifest、CI、任务入口和维护文档重新发现独立 app、package、service、插件，并为它们建立局部 `AGENTS.md`。
-- 把 TypeScript、测试、API、发布等详细规则留在聚焦文档中，`AGENTS.md` 只保留必要的自然语言入口。
+- 用“覆盖范围 × 任务触发”区分常驻规则和条件式规则；后者进入对应作用域的 `.agent-guides`，不会继续挤占 `AGENTS.md`。
+- 动态发现单文件 guide 或 `GUIDE.md + references` Guide 包，先读取一行触发描述，再按需加载正文。
 - 识别重复、冲突、失效命令、断链、个人偏好和疑似易漂移的文件路径。
 - 默认自动完成安全、证据明确的最小修改；所有权或政策含义不明确时停止并询问。
 - 只读检查脚本以 JSON 汇总指令层级、动态子项目候选、命令来源、Git 变化、路径引用和文档链接状态。
@@ -30,11 +31,46 @@ AgentsMD-GEN 提供 `agents-gen` Agent Skill。它既能响应“帮我创建 AG
 | --- | --- |
 | 根 `AGENTS.md` | 一句话项目说明、非默认包管理器或共享工具、非标准构建/类型检查命令、少量稳定文档入口 |
 | 独立子项目 `AGENTS.md` | 子项目用途、技术边界、局部命令和只适用于该作用域的指导入口 |
-| 聚焦文档 | TypeScript、测试、API、发布等只在相关任务中才需要的详细规则 |
+| 根 `.agent-guides` | 全项目适用，但只在测试、安全、发布等特定任务中需要的规则 |
+| 子项目 `.agent-guides` | 只在该子项目的特定任务中需要的规则 |
 
 根文件不会逐项复制 package 路径。对于多子项目仓库，它只需说明“每个独立子项目的具体规则请查看各自的 `AGENTS.md`”。Agent 进入对应目录时会获得根级和局部指令；检查器则在每次运行时从当前仓库重新发现真实结构。
 
 只有稳定的政策文档或正式命令入口才适合链接。类似“认证逻辑位于 `src/auth/handlers.ts`”的实现路径会被视为审计候选，因为文件移动后会污染 Agent 上下文。
+
+### Agent Guide 渐进披露
+
+根和嵌套 `AGENTS.md` 负责空间作用域；同级 `.agent-guides` 负责该作用域内按任务触发的细节。这套结构采用[渐进披露原则](https://www.aihero.dev/a-complete-guide-to-agents-md)：根文件只保留一条动态发现协议，不保存 guide 文件清单。Agent 会先确定当前任务适用的指令作用域，再扫描其中当前存在的入口并读取一行 `description`，最后只加载匹配的正文。
+
+简单主题使用单文件：
+
+```text
+.agent-guides/
+└── security.md
+```
+
+复杂主题可以使用一层 Guide 包：
+
+```text
+.agent-guides/
+└── testing/
+    ├── GUIDE.md
+    └── references/
+        ├── unit-tests.md
+        └── integration-tests.md
+```
+
+`security.md` 和 `testing/GUIDE.md` 都是入口，开头必须用一句话说明何时读取：
+
+```md
+---
+description: Use when adding or changing automated tests.
+---
+```
+
+只有选中 `testing/GUIDE.md` 后，Agent 才会根据其中的条件式相对链接读取需要的 reference。`references/` 不再建立下一层 guide 或索引。文件改名、合并或由单文件升级为 Guide 包后，根文件无需更新；检查器会重新发现当前位置，并报告缺少发现协议、无效描述、作用域错误和断链。
+
+检查器 JSON schema `1.2` 在保留原有字段的基础上增加 `guide_protocol_declared`、`guide_entries`、`guide_references` 和 `guide_issues`，供 Agent 使用当前仓库事实完成判断，而不是依赖持久化目录快照。
 
 ### 快速开始
 
@@ -79,7 +115,7 @@ skillmgr doctor
 使用 $agents-gen，根据当前项目创建或整理 AGENTS.md。
 ```
 
-当已安装的 Agent 执行会修改项目文件的任务时，`agents-gen` 还会在交付前检查这些变化是否产生了新的长期指令。普通功能代码通常得到 `AGENTS.md: unchanged`；具有独立开发生命周期的新 app、package、service 或插件会获得最小嵌套 `AGENTS.md`，普通代码目录仍继承上级规则。
+当已安装的 Agent 执行会修改项目文件的任务时，`agents-gen` 还会在交付前检查这些变化是否产生了新的长期指令。普通功能代码通常得到 `AGENTS.md: unchanged`；具有独立开发生命周期的新 app、package、service 或插件会获得最小嵌套 `AGENTS.md`。只有明确、长期且按任务触发的规则才会进入对应 `.agent-guides`，普通代码目录仍继承上级规则。
 
 ### 开发与验证
 
@@ -106,7 +142,8 @@ It treats `AGENTS.md` as scarce persistent context, not a project encyclopedia o
 
 - Create a minimal root `AGENTS.md` from real project evidence without persisting volatile source locations or directory maps.
 - Rediscover independent apps, packages, services, and plugins from current workspaces, manifests, CI, task entrypoints, and maintained docs, then give them scoped `AGENTS.md` files.
-- Keep detailed TypeScript, testing, API, and release rules in focused documents, with only lightweight natural-language pointers in `AGENTS.md`.
+- Separate persistent rules by coverage and activation; conditional rules go into the matching scope's `.agent-guides` instead of crowding `AGENTS.md`.
+- Dynamically discover single-file guides or `GUIDE.md + references` packages, inspect one-line trigger descriptions first, and load bodies only when relevant.
 - Detect duplication, conflicts, stale commands, broken links, personal preferences, and suspicious volatile file references.
 - Apply safe, evidence-backed minimal edits automatically, while stopping for unclear ownership or policy meaning.
 - Use a read-only JSON inventory to summarize instruction hierarchy, dynamic subproject candidates, command sources, Git changes, path references, and documentation link health.
@@ -117,11 +154,46 @@ It treats `AGENTS.md` as scarce persistent context, not a project encyclopedia o
 | --- | --- |
 | Root `AGENTS.md` | One-sentence project purpose, non-default package manager or shared tooling, non-standard build/typecheck commands, and a few stable documentation entrypoints |
 | Independent subproject `AGENTS.md` | Subproject purpose, technology boundary, local commands, and guidance pointers that apply only within that scope |
-| Focused documents | Detailed TypeScript, testing, API, release, and other guidance loaded only for relevant work |
+| Root `.agent-guides` | Project-wide rules needed only for named work such as testing, security, or release tasks |
+| Subproject `.agent-guides` | Conditional rules needed only for named work inside that subproject |
 
 The root does not copy a package-by-package path map. In a multi-project repository, it only needs to say that each independent subproject keeps local guidance in its own `AGENTS.md`. The host combines root and local instructions when work enters that directory, while the inspector rediscovers the current repository structure on every run.
 
 Only stable policy documents and official command entrypoints should be linked. An implementation claim such as “authentication lives in `src/auth/handlers.ts`” is treated as an audit candidate because a later file move would pollute Agent context.
+
+### Progressive Disclosure with Agent Guides
+
+Root and nested `AGENTS.md` files define spatial scope. A sibling `.agent-guides` directory holds details that activate only for named work inside that scope. This structure follows [progressive-disclosure principles](https://www.aihero.dev/a-complete-guide-to-agents-md): the root keeps one dynamic discovery protocol rather than a guide file list. An agent first identifies the instruction scopes applicable to the task, scans their current entries, reads each one-line `description`, and loads only the matching bodies.
+
+Use one file for a cohesive topic:
+
+```text
+.agent-guides/
+└── security.md
+```
+
+Use one level of Guide package for a topic with substantial conditional branches:
+
+```text
+.agent-guides/
+└── testing/
+    ├── GUIDE.md
+    └── references/
+        ├── unit-tests.md
+        └── integration-tests.md
+```
+
+Both `security.md` and `testing/GUIDE.md` are entries and must start with a one-line trigger:
+
+```md
+---
+description: Use when adding or changing automated tests.
+---
+```
+
+Only after selecting `testing/GUIDE.md` does the agent follow its conditional relative links to the references it needs. The `references/` directory cannot introduce another guide or index layer. Renaming or merging entries, or upgrading a file into a Guide package, requires no root update; the inspector rediscovers the current paths and reports missing discovery, invalid descriptions, scope errors, and broken links.
+
+Inspector JSON schema `1.2` preserves the existing fields and adds `guide_protocol_declared`, `guide_entries`, `guide_references`, and `guide_issues`. Agents use this current repository evidence instead of a persisted directory snapshot.
 
 ### Quick Start
 
@@ -166,7 +238,7 @@ Or invoke the Skill explicitly:
 Use $agents-gen to create or organize this project's AGENTS.md from current evidence.
 ```
 
-When an installed Agent performs a task that changes project files, `agents-gen` also checks whether those changes introduce durable instructions before handoff. Ordinary feature code will usually produce `AGENTS.md: unchanged`; a new app, package, service, or plugin with an independent development lifecycle receives a minimal nested `AGENTS.md`, while ordinary code directories inherit their parent guidance.
+When an installed Agent performs a task that changes project files, `agents-gen` also checks whether those changes introduce durable instructions before handoff. Ordinary feature code will usually produce `AGENTS.md: unchanged`; a new app, package, service, or plugin with an independent development lifecycle receives a minimal nested `AGENTS.md`. Only evidenced, durable rules with task-specific activation enter the matching `.agent-guides`, while ordinary code directories inherit their parent guidance.
 
 ### Development and Verification
 

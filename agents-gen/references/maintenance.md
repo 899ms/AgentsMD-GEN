@@ -11,6 +11,8 @@ Update `AGENTS.md` when the final change introduces or removes one of these dura
 - a stable architectural boundary or ownership rule that changes where future work belongs;
 - a new, moved, renamed, merged, or removed independent subproject;
 - a renamed or removed document currently linked from applicable instructions;
+- a new, moved, renamed, or removed `.agent-guides` entry or reference;
+- a guide whose discovery protocol, description, scope, or link became invalid;
 - an existing instruction that became false, contradictory, or misleading.
 
 Normally report unchanged for:
@@ -36,6 +38,16 @@ For an ordinary subtree that is not an independent subproject, create the neares
 
 When an independent subproject ceases to exist, or an ordinary nested file loses its last distinct rule, remove the file only after confirming it contains no user policy or other owned content.
 
+## Maintain progressive disclosure
+
+Do not opportunistically split a user's instructions during an ordinary implementation gate. Reorganize existing policy only when the user explicitly asks to organize, shorten, split, or progressively disclose it. An explicit organization request authorizes meaning-preserving movement and deduplication, not semantic rewriting or deletion.
+
+When conditional durable guidance is created or changed, place it in the `.agent-guides` directory paired with the narrowest established `AGENTS.md` scope. The first guide created in a project must also add the root discovery protocol. A guide without that protocol is not an accepted artifact.
+
+Treat a single-file guide rename or a change between single-file and package form as discoverable movement, not a root routing change. Repair relative links inside a guide package in the same task. If a referenced authoritative document moves, update its guide link when the new target is unambiguous; otherwise stop and ask.
+
+Do not use a line limit as an automatic migration rule. Around 50 lines triggers review, but supported instructions may remain when every task in the scope needs them.
+
 ## Make automatic edits narrow
 
 Routine automatic changes may:
@@ -43,6 +55,8 @@ Routine automatic changes may:
 - add or correct a verified command;
 - add a pointer whose target already exists;
 - create a minimal root or nested file when the evidence and ownership are unambiguous;
+- create or update a guide for a newly evidenced conditional rule in an established scope;
+- move supported policy into guides during an explicit organization request without changing its meaning;
 - remove a purely factual statement whose referenced target demonstrably no longer exists, when doing so cannot change policy meaning.
 
 Ask before:
@@ -62,4 +76,4 @@ Use one result even when several instruction files were inspected:
 - `unchanged`: the project change introduced no durable instruction impact;
 - `blocked`: evidence, ownership, or conflict prevented a safe result.
 
-Name every changed instruction file. For unchanged, state the evidence class checked. For blocked, ask only the decision that cannot be derived from the project.
+Name every changed instruction and guide file. For unchanged, state the evidence class checked. For blocked, ask only the decision that cannot be derived from the project.

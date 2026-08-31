@@ -82,7 +82,7 @@ class InspectAgentsContextTests(unittest.TestCase):
             completed = self.run_cli(project)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             data = json.loads(completed.stdout)
-            self.assertEqual(data["schema_version"], "1.1")
+            self.assertEqual(data["schema_version"], "1.2")
             by_path = {item["path"]: item for item in data["instruction_files"]}
             self.assertEqual(by_path["AGENTS.md"]["scope"], ".")
             self.assertEqual(by_path["packages/api/AGENTS.md"]["scope"], "packages/api")
@@ -163,6 +163,190 @@ class InspectAgentsContextTests(unittest.TestCase):
                     }
                 ],
             )
+
+    def test_collects_scoped_single_file_and_package_guides(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            package = project / "packages" / "api"
+            root_guides = project / ".agent-guides"
+            local_guide = package / ".agent-guides" / "testing"
+            references = local_guide / "references"
+            root_guides.mkdir()
+            references.mkdir(parents=True)
+            (project / "AGENTS.md").write_text(
+                "# Project\n\nDiscover `.agent-guides/` for every applicable "
+                "AGENTS.md scope.\n",
+                encoding="utf-8",
+            )
+            (package / "AGENTS.md").write_text("# API\n", encoding="utf-8")
+            (root_guides / "security.md").write_text(
+                "---\ndescription: Use when changing authentication or sensitive data.\n"
+                "---\n\n# Security\n",
+                encoding="utf-8",
+            )
+            (local_guide / "GUIDE.md").write_text(
+                "---\ndescription: Use when adding or changing API tests.\n---\n\n"
+                "# Testing\n\nFor unit tests, read "
+                "[unit testing](references/unit-tests.md).\n",
+                encoding="utf-8",
+            )
+            (references / "unit-tests.md").write_text(
+                "# Unit testing\n", encoding="utf-8"
+            )
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            self.assertTrue(data["guide_protocol_declared"])
+            entries = {item["path"]: item for item in data["guide_entries"]}
+            self.assertEqual(entries[".agent-guides/security.md"]["scope"], ".")
+            self.assertEqual(
+                entries[".agent-guides/security.md"]["type"], "single-file"
+            )
+            self.assertEqual(
+                entries["packages/api/.agent-guides/testing/GUIDE.md"]["scope"],
+                "packages/api",
+            )
+            self.assertEqual(
+                entries["packages/api/.agent-guides/testing/GUIDE.md"]["type"],
+                "package",
+            )
+            self.assertEqual(
+                entries["packages/api/.agent-guides/testing/GUIDE.md"]["description"],
+                "Use when adding or changing API tests.",
+            )
+            self.assertEqual(data["guide_issues"], [])
+            self.assertEqual(
+                data["guide_references"][0]["target"], "references/unit-tests.md"
+            )
+            self.assertTrue(data["guide_references"][0]["exists"])
+
+    def test_reports_invalid_unscoped_and_broken_guides(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            guide = project / "module" / ".agent-guides" / "testing"
+            guide.mkdir(parents=True)
+            (project / "AGENTS.md").write_text("# Project\n", encoding="utf-8")
+            (guide / "GUIDE.md").write_text(
+                "# Testing\n\nSee [missing](references/missing.md).\n",
+                encoding="utf-8",
+            )
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            issue_kinds = {item["kind"] for item in data["guide_issues"]}
+            self.assertIn("missing_guide_protocol", issue_kinds)
+            self.assertIn("unscoped_guide_directory", issue_kinds)
+            self.assertIn("missing_frontmatter", issue_kinds)
+            self.assertIn("broken_guide_link", issue_kinds)
+
+    def test_discovers_renamed_guide_without_an_index(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            guides = project / ".agent-guides"
+            guides.mkdir()
+            root = project / "AGENTS.md"
+            root.write_text(
+                "# Project\n\nDiscover `.agent-guides/` dynamically.\n",
+                encoding="utf-8",
+            )
+            original = guides / "tests.md"
+            original.write_text(
+                "---\ndescription: Use when changing tests.\n---\n",
+                encoding="utf-8",
+            )
+            before = root.read_bytes()
+            original.rename(guides / "verification.md")
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            self.assertEqual(root.read_bytes(), before)
+            self.assertEqual(
+                [item["path"] for item in data["guide_entries"]],
+                [".agent-guides/verification.md"],
+            )
+
+    def test_reports_nested_references_and_unexpected_package_files(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            guide = project / ".agent-guides" / "testing"
+            nested = guide / "references" / "unit"
+            nested.mkdir(parents=True)
+            (project / "AGENTS.md").write_text(
+                "# Project\n\nDiscover `.agent-guides/` dynamically.\n",
+                encoding="utf-8",
+            )
+            (guide / "GUIDE.md").write_text(
+                "---\ndescription: Use when changing tests.\n---\n",
+                encoding="utf-8",
+            )
+            (guide / "notes.md").write_text("# Notes\n", encoding="utf-8")
+            (guide / "references" / "fixture.bin").write_bytes(b"fixture")
+            (nested / "details.md").write_text("# Details\n", encoding="utf-8")
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            issue_kinds = {item["kind"] for item in data["guide_issues"]}
+            self.assertIn("unexpected_guide_file", issue_kinds)
+            self.assertIn("nested_reference_directory", issue_kinds)
+
+    def test_reports_root_size_as_a_review_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            (project / "AGENTS.md").write_text(
+                "\n".join(f"Rule {index}" for index in range(51)), encoding="utf-8"
+            )
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            root = data["instruction_files"][0]
+            self.assertEqual(root["line_count"], 51)
+            self.assertTrue(root["review_size"])
+
+    def test_validates_supported_guide_description_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            guides = project / ".agent-guides"
+            guides.mkdir()
+            (project / "AGENTS.md").write_text(
+                "# Project\n\nDiscover `.agent-guides/` dynamically.\n",
+                encoding="utf-8",
+            )
+            (guides / "quoted.md").write_text(
+                "---\ndescription: 'Use when preparing releases.'\n---\n",
+                encoding="utf-8",
+            )
+            (guides / "empty.md").write_text(
+                "---\ndescription:\n---\n", encoding="utf-8"
+            )
+            (guides / "multiline.md").write_text(
+                "---\ndescription: |\n  Use when testing.\n---\n", encoding="utf-8"
+            )
+            (guides / "duplicate.md").write_text(
+                "---\ndescription: First.\ndescription: Second.\n---\n",
+                encoding="utf-8",
+            )
+            (guides / "unterminated.md").write_text(
+                "---\ndescription: Use when documenting.\n", encoding="utf-8"
+            )
+
+            completed = self.run_cli(project)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(completed.stdout)
+            entries = {item["path"]: item for item in data["guide_entries"]}
+            self.assertEqual(
+                entries[".agent-guides/quoted.md"]["description"],
+                "Use when preparing releases.",
+            )
+            issue_kinds = {item["kind"] for item in data["guide_issues"]}
+            self.assertIn("empty_description", issue_kinds)
+            self.assertIn("multiline_description", issue_kinds)
+            self.assertIn("duplicate_description", issue_kinds)
+            self.assertIn("unterminated_frontmatter", issue_kinds)
 
     def test_reports_project_git_changes_without_inheriting_an_ancestor(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
